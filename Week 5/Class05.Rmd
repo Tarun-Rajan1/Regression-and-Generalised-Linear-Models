@@ -1,0 +1,188 @@
+---
+title: "ST300 Week 5"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+## Effect of correlated predictors
+
+Suppose that $\tilde{X}_1, \tilde{X}_2$ and $\tilde{X}_3$ are iid $N(0,1)$, and $Z$ is independently distributed as $N\left(0, \sigma_z^2\right)$. Define $X_j=\tilde{X}_j+Z, j=1, \ldots, 3$. What is the correlation between pairs $X_j$ and $X_{j^{\prime}}$?
+
+Suppose we construct a regression function $f(X) = X \hat{\beta}$. where $\hat{\beta}=c(1,1,1)$. What is the variance of $f(X)$ (i.e. unconditional variance)?
+
+Write a function `gendata` that generates data in the following fashion: It takes as input $N, \rho, SNR$ (signal-to-noise ratio), and $RNseed$, a random number seed. It should generate a $N \times 3$ matrix $X$ of correlated predictors, with pairwise correlations $\rho$ and variances 1. It should create a regression function $f$ as described above, and a response $Y = f(X)+\epsilon$ such that $\text{Var}(f(X)) / \text{Var}(\epsilon)=SNR$. It should return $X$ and $y$ as named components in a `dataframe`.
+```{r}
+gendata <- function(N, rho, SNR, RNseed) {
+  # Set the seed for reproducibility
+  set.seed(???)
+  
+  # Generate correlated predictors
+  # Correlation matrix for X
+  Sigma <- ???
+  
+  # Generate multivariate normal data for X: use mvrnorm from package MASS
+  X <- MASS::mvrnorm(???)
+  
+  # Define regression function f(X) = X1 + X2 + X3
+  f_X <- 
+  
+  # Calculate variance of f(X)
+  var_fx <- 
+  
+  # Determine the variance of epsilon (noise) based on SNR
+  var_epsilon <- var_fx / SNR
+  
+  # Generate epsilon (noise) from normal distribution with mean zero and variance var_epsilon
+  epsilon <- 
+  
+  # Generate response Y = f(X) + epsilon
+  Y <- 
+  
+  # Return X and Y in a dataframe
+  return(data.frame(X1 = X[,1], X2 = X[,2], X3 = X[,3], Y = Y))
+}
+
+# Example usage:
+# gendata(100, 0.5, 2, 123)
+
+```
+
+Write a function `coefcor` that takes as input the same as the above, except $\rho$ is now a vector of correlations. For each value of $\rho$, it computes the OLS coefficients for $X$, and stores them as rows of a matrix (length $(\rho) \times 3$ ). For each value of $\rho$, it uses the same RN seed.
+```{r}
+coefcor <- function(N, rho_vec, SNR, RNseed) {
+  # Initialize a matrix to store the coefficients (length of rho_vec x 3)
+  coef_matrix <- matrix(0, nrow = length(rho_vec), ncol = 3)
+  
+  # Loop over each correlation in rho_vec
+  for (i in seq_along(rho_vec)) {
+    rho <- rho_vec[i]  # Current correlation value
+    
+    df <- # data generated using gendata
+    
+    # Fit linear model Y ~ X1 + X2 + X3 using OLS for Y, X1, X2, and X3 from df
+    lm_fit <- 
+    
+    # Extract coefficients (ignore the intercept, take X1, X2, X3)
+    coef_matrix[i, ] <- 
+  }
+  
+  # Return the coefficient matrix
+  return(coef_matrix)
+}
+
+# Example usage:
+# rho_vector <- c(0.1, 0.3, 0.5, 0.7, 0.9)
+# coefcor(100, rho_vector, 2, 123)
+```
+
+Run your function `coefcor` using $N = 30$ for 20 values of $\rho$ between 0 and 0.95 , and $\mathrm{SNR}=1$. Plot the coefficients of each variable as a function of $\rho$ (on the same plot). Do this 100 times (with a different seed each time) and accumulate the results (You don't have to save the plots - you can watch them run by).
+```{r}
+# Parameters
+N <- 30
+rho_vec <- seq(0, 0.95, length.out = 20)
+SNR <- 1
+num_iterations <- 100
+
+# Store coefficients over iterations
+coefficients_X1 <- matrix(0, nrow = length(rho_vec), ncol = num_iterations)
+coefficients_X2 <- matrix(0, nrow = length(rho_vec), ncol = num_iterations)
+coefficients_X3 <- matrix(0, nrow = length(rho_vec), ncol = num_iterations)
+
+# Run the simulation 100 times with different random seeds
+for (seed in 1:num_iterations) {
+  coef_matrix <- coefcor(N, rho_vec, SNR, RNseed = seed)
+  
+  # Store the results
+  coefficients_X1[, seed] <- coef_matrix[, 1]
+  coefficients_X2[, seed] <- coef_matrix[, 2]
+  coefficients_X3[, seed] <- coef_matrix[, 3]
+}
+
+# Plot the results
+par(mfrow = c(1, 1))  # Reset plotting layout
+
+# Plot coefficients for X1, X2, X3 as a function of rho
+plot(rho_vec, coefficients_X1[,1], type = "l", col = "blue", ylim = range(c(coefficients_X1, coefficients_X2, coefficients_X3)),
+     xlab = expression(rho), ylab = "Coefficients", main = "OLS Coefficients vs Correlation (100 Iterations)")
+for (i in 2:num_iterations) {
+  lines(rho_vec, coefficients_X1[, i], col = "blue")
+}
+for (i in 1:num_iterations) {
+  lines(rho_vec, coefficients_X2[, i], col = "red")
+}
+for (i in 1:num_iterations) {
+  lines(rho_vec, coefficients_X3[, i], col = "green")
+}
+
+# Add a legend to differentiate the variables
+legend("topright", legend = c("X1", "X2", "X3"), col = c("blue", "red", "green"), lty = 1)
+```
+
+Summarize the results as follows. Make a single plot of each coefficient profile as a function of $\rho$ (there should be 300 curves in the plot). For each value of $\rho$, compute the correlation matrix of the coefficients across the 100 runs. Average the three correlations, and plot them as a function of $\rho$. Summarize what you have learned.
+```{r}
+# Initialize a vector to store the averaged correlations across all rho values
+avg_correlations <- numeric(length(rho_vec))
+
+# Loop over each rho and compute correlation matrix of the coefficients
+for (i in 1:length(rho_vec)) {
+  # Collect the coefficients for X1, X2, X3 across the 100 iterations
+  coef_data <- cbind(coefficients_X1[i, ], coefficients_X2[i, ], coefficients_X3[i, ])
+  
+  # Compute the correlation matrix of the coefficients
+  cor_matrix <- cor(coef_data)
+  
+  # Extract the off-diagonal correlations and average them
+  avg_correlation <- mean(c(cor_matrix[1, 2], cor_matrix[1, 3], cor_matrix[2, 3]))
+  
+  # Store the average correlation for the current rho
+  avg_correlations[i] <- avg_correlation
+}
+
+# Plot the average correlations as a function of rho
+plot(rho_vec, avg_correlations, type = "b", col = "purple", pch = 19, 
+     xlab = expression(rho), ylab = "Average Correlation of Coefficients",
+     main = "Average Correlation of Coefficients vs Rho")
+```
+
+## R-squared
+**Exercise 34.** Show that $R^2$ is the squared sample Pearson correlation coefficient between $Y$ and $\hat{Y}$.
+
+## F test
+The data for this example come from a study by Stamey et al. (1989). They examined the correlation between the level of prostate-specific antigen and a number of clinical measures in men who were about to receive a radical prostatectomy. The variables are log cancer volume `lcavol`, log prostate weight `lveight`, `age`, log of the amount of benign prostatic hyperplasia `1bph`, seminal vesicle invasion `svi`, log of capsular penetration `lcp`, Gleason score `gleason`, and percent of Gleason scores 4 or 5 `pgg45`. Read the data set and save it as a data frame. Then calculate the pairwise correlations. 
+
+```{r}
+prostate <- 
+
+```
+Fit a linear model to the log of prostate-specific antigen, `lpsa`, after first standardizing the predictors to have unit variance. Which predictors are not significant at the $5\%$ level? What happens if you exclude all non-significant predictors from regression? Use F-test to justify your reasoning.
+```{r}
+prostate_scale <- 
+fit_all <- 
+
+# which variables are not significant
+
+fit_sub <- 
+
+# use function anova for F-test
+```
+
+## Prediction Interval
+(2016 exam Q2 b) Let $Y=X \boldsymbol{\beta}+\boldsymbol{\epsilon}, \boldsymbol{\epsilon} \sim N\left(\mathbf{0}, \sigma^2 \mathrm{I}_n\right)$ be a linear model, with data $\left(\mathbf{x}_i, y_i\right), i=1, \ldots, n$. The parameter $\boldsymbol{\beta}$ is $p$ dimensional.
+Two new data points are observed : $\left(\mathbf{w}, y_w\right)$ and $\left(\mathbf{z}, y_z\right)$. That is,
+
+$$
+y_w=\mathbf{w}^{\mathbf{T}} \boldsymbol{\beta}+\epsilon_w, \quad y_z=\mathbf{z}^{\mathbf{T}} \boldsymbol{\beta}+\epsilon_z,
+$$
+
+where $\epsilon_w, \epsilon_z \sim N\left(0, \sigma^2\right)$ and are independent of each other, and are independent from all past data also. Suppose $\mathbf{w}, \mathbf{z}$ are both known covariate vectors.
+i. Show that the distribution of $y_w-y_z$ is
+
+$$
+y_w-y_z \sim N\left((\mathbf{w}-\mathbf{z})^{\mathbf{T}} \boldsymbol{\beta}, 2 \sigma^2\right) .
+$$
+
+ii. Derive the distribution of $\left(\hat{y}_w-\hat{y}_z\right)-\left(y_w-y_z\right)$.
+iii. Construct a $(1-\gamma)$ prediction interval for $y_w-y_z$.
+iv. Suppose now that $\mathbf{w}$ and $\mathbf{z}$ are independent normal with mean $\mathbf{0}$ and covariance matrix $\sigma_x^2 \mathbf{I}$, with $\sigma_x^2$ known. Find the distribution of $y_w-y_z$ in terms of $\boldsymbol{\beta}, \sigma_x^2$ and $\sigma^2$. Suggest an approximate $(1-\gamma)$ prediction interval for $y_w-y_z$ by estimating its variance using a reasonable plug-in estimator.
+

@@ -1,0 +1,32 @@
+Type,Risk,Lscd,Cluster
+Acute myeloid leukemia,0.0041,1.30E+11,Replicative
+Basal cell carcinoma,0.3,3.55E+12,Deterministic
+Chronic lymphocytic leukemia,0.0052,1.30E+11,Replicative
+Colorectal adenocarcinoma,0.048,1.17E+12,Deterministic
+Colorectal adenocarcinoma with FAP,1,1.17E+12,Deterministic
+Colorectal adenocarcinoma with Lynch syndrome,0.5,1.17E+12,Deterministic
+Duodenum adenocarcinoma,0.0003,7.80E+09,Replicative
+Duodenum adenocarcinoma with FAP,0.035,7.80E+09,Deterministic
+Esophageal squamous cell carcinoma,0.001938,1.20E+09,Replicative
+Gallbladder non papillary adenocarcinoma,0.0028,7.84E+07,Replicative
+Glioblastoma,0.00219,2.70E+08,Replicative
+Head & neck squamous cell carcinoma,0.0138,3.19E+10,Replicative
+Head & neck squamous cell carcinoma with HPV-16,0.07935,3.19E+10,Deterministic
+Hepatocellular carcinoma,0.0071,2.71E+11,Replicative
+Hepatocellular carcinoma with HCV,0.071,2.71E+11,Deterministic
+Lung adenocarcinoma (nonsmokers),0.0045,9.27E+09,Replicative
+Lung adenocarcinoma (smokers),0.081,9.27E+09,Deterministic
+Medulloblastoma,0.00011,2.72E+08,Replicative
+Melanoma,0.0203,7.64E+11,Replicative
+Osteosarcoma,0.00035,2.93E+07,Replicative
+Osteosarcoma of the arms,0.00004,4.55E+06,Replicative
+Osteosarcoma of the head,0.0000302,6.02E+06,Replicative
+Osteosarcoma of the legs,0.00022,1.11E+07,Replicative
+Osteosarcoma of the pelvis,0.00003,3.15E+06,Replicative
+Ovarian germ cell,0.000411,2.20E+07,Replicative
+Pancreatic ductal adenocarcinoma,0.013589,3.43E+11,Replicative
+Pancreatic endocrine (islet cell) carcinoma,0.000194,6.07E+09,Replicative
+Small intestine adenocarcinoma,0.0007,2.92E+11,Replicative
+Testicular germ cell cancer,0.0037,3.35E+09,Replicative
+Thyroid papillary/follicular carcinoma,0.01026,5.85E+08,Deterministic
+Thyroid medullary carcinoma,0.000324,5.85E+07,Replicative

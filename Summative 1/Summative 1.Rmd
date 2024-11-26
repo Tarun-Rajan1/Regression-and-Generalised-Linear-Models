@@ -1,0 +1,105 @@
+---
+title: "Summative 1"
+output:
+  pdf_document: default
+  word_document: default
+date: "2024-10-23"
+---
+## R Markdown
+
+```{r}
+
+# Clearing the environment
+rm(list =ls())
+
+#Installing the packages 
+install.packages("lubridate")
+install.packages("reshape2") 
+install.packages("moments")
+install.packages("zoo")
+install.packages("tseries")
+
+#Libraries
+library(lubridate)
+library(reshape2)
+library(moments)
+library(zoo)
+library(tseries)
+
+#Setting the work Directory 
+setwd("/Users/tarunrajan/Library/Mobile Documents/com~apple~CloudDocs/FM321/Summative 1")  
+
+#Reading in the data 
+stocks <- read.csv("Stocks.csv")
+
+#Adjusting the Returns
+stocks$Unadjusted_Price <- stocks$PRC
+stocks$Adjusted_Price <- stocks$PRC / stocks$CFACPR 
+
+#Subset for prices 
+Tickers <- dcast(stocks, date ~ PERMNO, value.var = "TICKER")
+Tickers <- head(Tickers,1)
+
+Prices <- dcast(stocks, date ~ PERMNO, value.var = "Adjusted_Price")
+names(Prices) <- Tickers
+names(Prices)[1] <- "date"
+
+#Plotting prices
+date.ts <- ymd(Prices$date)
+
+par(mfrow = c(2, 1))
+Prices.ts.Tesla <- zoo(Prices$TSLA,order.by=date.ts)
+plot(Prices.ts.Tesla, type = "l",main = "Prices", ylab = "Tesla",col = "red")
+Prices.ts.Unilever <- zoo(Prices$UL,order.by=date.ts)
+plot(Prices.ts.Unilever, type = "l", ylab = "Unilever", col = "red")
+mtext("Date", side = 1, outer = TRUE, line = 1)
+
+#Zooming into Tesla's price
+Prices.crisis <- window(Prices.ts.Tesla,start= ymd(20200101),end=ymd(20231231))
+plot(Prices.crisis, type = "l",main = "Zooming into Tesla", xlab = "date", ylab = "Price", col = "red")
+
+interval_data <- window(Prices.ts.Tesla, start = ymd(20220101),end=ymd(20231231))
+min_price <- min(interval_data)
+abline(v = date.ts[Prices.ts.Tesla == max(Prices.ts.Tesla)], lwd = 1, col = "purple")
+abline(v = date.ts[Prices.ts.Tesla == min_price], lwd = 1, col = "blue")
+
+#Subset for simple returns
+Simple_Returns <- dcast(stocks, date ~ PERMNO, value.var = "RET")
+names(Simple_Returns) <- Tickers
+names(Simple_Returns)[1] <- "date"
+
+#Converting to compound returns 
+Returns <- log(1 + Simple_Returns[,2:dim(Simple_Returns)[2]])
+Returns$date <- Simple_Returns$date
+Returns <- Returns[,c(dim(Simple_Returns)[2],1:dim(Simple_Returns)[2] - 1)]
+
+#Plotting returns
+date.ts <- ymd(Returns$date)
+par(mfrow = c(2, 1))
+Returns.ts <- zoo(Returns$TSLA,order.by=date.ts)
+plot(Returns.ts, type = "l",main = "Returns", ylab = "Tesla",col = "blue")
+Returns.ts <- zoo(Returns$UL,order.by=date.ts)
+plot(Returns.ts, type = "l", ylab = "Unilever", col = "blue")
+mtext("Date", side = 1, outer = TRUE, line = 1)
+
+
+df <- matrix(ncol=4,nrow=2) 
+n <- names(Returns)
+n <- n[2:length(n)]
+for(i in 1:length(n)){
+  x=Returns[[n[i]]]
+  df[i,]=c(mean(x),sd(x),min(x),max(x)) 
+}
+df <-  as.data.frame(df)  
+df <- cbind(n,df*100)    
+names(df)=c("Asset","mean","sd","min","max")
+#kable(df,digits=3,caption="Sample stats (in %)") # uses the kable function to create a nicely formatted table from df, rounding values to 3 digits and adding the caption "Sample stats (in %)".
+
+
+
+
+
+```
+
+
+

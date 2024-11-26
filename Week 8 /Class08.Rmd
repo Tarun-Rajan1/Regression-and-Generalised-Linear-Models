@@ -1,0 +1,113 @@
+---
+title: "ST300 Week 8"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+## Poisson data 
+
+This problem refers to data from a study of nesting horseshoe crabs (J. Brockmann, Ethology 1996). Each female horseshoe crab in the study had a male crab attached to her in her nest. The study investigated factors that affect whether the female crab had any other males, called satellites, residing near her. Explanatory variables that are thought to affect this included the female crab's color, spine condition, and carapace width, and weight. The response outcome for each female crab is the number of satellites. There are 173 females in this study. 
+
+
+Let's first study the marginal distribution of the response variable `satell`. Plot the histogram of `satell`. What is the ratio of variance and mean of `satell`?
+
+```{r}
+install.packages("glmbb")
+library(glmbb) # for `crabs` data
+data(crabs)
+str(crabs)
+hist(crabs$satell)
+var(crabs$satell) / mean(crabs$satell)
+
+```
+What does the ratio of variance and means tell us?
+
+Ratio = 3.395602
+
+
+Fit a poisson regression only using an intercept in your model for `satell`. Use function `logLik` to get the log-likelihood value of the fitted model.
+```{r}
+p1 <- glm(satell ~ 1, family = poisson(link = "log"), data = crabs) # default link is log
+summary(p1) 
+logLik(p1)
+```
+
+Fit a negative binomial regression only using an intercept in your model for `satell`. Package `MASS` has function `glm.nb` for fitting negative binomial. Use function `logLik` to get the log-likelihood value of the fitted model.
+```{r}
+library(MASS)
+p2 <- glm.nb(satell ~ 1, data = crabs) # default link is log
+summary(p2)
+logLik(p2)
+```
+
+**Question** How do the above two models differ?
+
+## Zero inflated models
+We use package `pscl` to fit zero-inflated distributions. Fit a zero-inflated poisson to `satell` only allowing for intercept.
+```{r}
+install.packages("pscl")
+library(pscl) # pscl package can fit zero-inflated distributions
+p3 <- zeroinfl(crabs$satell ~ 1) # uses log link
+summary(p3)
+```
+
+Fit a zero-inflated negative binomial to `satell` only allowing for intercept.
+```{r}
+p4 <- zeroinfl(crabs$satell ~ 1, dist = "negbin") # uses log link in pscl lib
+summary(p4)
+```
+
+Let's see if the carapace width can explain the number of satellites attached. Fit a Poisson regression model with carapace `width` as the only predictor allowing for intercept.
+```{r}
+crabs1 <- glm(satell ~ width, family = poisson, data = crabs)
+summary(crabs1)
+```
+## Model fit assessment
+
+**Question** Does the model fit well? 
+```{r}
+dev <- deviance(crabs1) 
+df <- df.residual(crabs1)
+p_value <- 1 - pchisq(dev,df)
+```
+
+
+
+**Question** Is width a significant predictor? 
+
+
+### Interpretation
+
+## Overdispersion 
+What does the following table tells us?
+```{r}
+library(dplyr)
+crabs$groups <-  cut(crabs$width, breaks=c(0, seq(23.25, 29.25, by=1), max(crabs$width)))
+results <- crabs %>%
+          group_by(groups) %>%
+          summarize(N=n(), numS = mean(satell), varS = var(satell))
+results
+```
+
+## Quasi-Poisson model
+If we want to adjust for overdispersion we can add a scale parameter with the `family=quasipoisson` option. The estimated scale parameter will be labeled as "Overdispersion parameter" in the output. (As stated in the lecture we can also fit a negative binomial regression instead). Fit a `quasipoisson` to model `satell` based on `width` and intercept. What is the dispersion parameter used in the model?
+
+```{r}
+crabs2 <- glm(satell ~ ???, family=???, data=crabs)
+summary.glm(?)
+summary.glm(?)$dispersion
+```
+**Question** What is the value of AIC?
+
+
+## Some Linear Regression practice
+(Exam 2022) Consider the linear model $y_i=\beta_0+\beta_1 x_{1 i}+\beta_2 x_{2 i}+\beta_3 x_{3 i}+\varepsilon_i, i=1, \cdots, 50$. The model satisfies the usual assumptions of the normal linear regression model. Outline a hypothesis test for $\mathcal{H}_0: \beta_1=\beta_3$ against $\mathcal{H}_1: \beta_1 \neq \beta_3$ by stating
+
++ the restricted and unrestricted models in a form that can be estimated by the method of ordinary least squares,
++ the test statistic that depends on the residual sum of squares of the fitted models,
++ and the distribution of the test statistic under the null hypothesis.
+
+
+

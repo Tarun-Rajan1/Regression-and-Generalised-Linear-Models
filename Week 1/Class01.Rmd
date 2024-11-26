@@ -1,0 +1,302 @@
+---
+title: "ST300 Week 1"
+output:
+  html_document:
+    df_print: paged
+---
+
+In this workshop:
+
+- We practice fitting the simple and mulitple linear regression using R
+- We will practice using package ggplot
+
+## Simple Linear Regression
+
+Download data _Advertising.csv_ from Moodle. 
+
+- The data is csv format so we use `read.csv()` which is a base R function.
+If you have the tidyverse package you can use `read_csv` which loads data faster.
+
+- The first row of the data contains the names of the variables so use the argument `header=TRUE`(use `ncol=T`if using `read_csv`)
+
+Once you have installed them, load the packages `ggplot2`, `texreg` and `stargazer`.
+`ggplot2` is for using ggplot for creating the plots, `texreg` and `stargazer` are used to convert regression output to an ASCII table, which may then be copied and pasted into a report.
+
+```{r}
+#Code
+install.packages(c("texreg","stargazer"),repos = "http://cran.us.r-project.org")
+install.packages("ggplot2")
+library(ggplot2)
+
+
+```
+Load Advertising.csv, and output the 1st 6 rows
+
+```{r}
+#code
+ads <- read.csv("/Users/tarunrajan/Library/Mobile Documents/com~apple~CloudDocs/ST300/Week 1/Advertising.csv")
+head(ads)
+ads <- ads[, c(-1)]
+str(ads)
+#ads <- cbind(ads$TV, ads$radio, ads$newspaper, ads$sales)
+#ads <- ads[, c(2, 3, 4, 5)]
+```
+
+See that the data frame object appears in the Global Environment 
+A data frame is a 2D object (a table) that can hold different data types (numeric, integer, strings, logical values). condition is that each column must have the same data type, but the types may be different across columns
+
+The variables are:
+
+- TV: TV advertising budget in thousands of USD
+- radio: radio advertising budget in thousands of USD
+- newspaper: newspaper advertising budget in thousands of USD
+- sales: sales in thousands of units
+
+**Questions**
+
+1. Compute the correlation between _sales_ and the predictor _TV_.
+
+2. Obtain the scatterplot of _sales_ vs _TV_ ,write down the fitted line of the regression of _sales on _TV_, and interpret the goodness of fit measure R-squared.
+
+```{r}
+
+cor(ads$sales,ads$TV)
+
+lm_sales_TV <- lm(sales~TV, ads)
+
+ggplot(data = ads, aes(x = TV, y = sales)) +
+geom_point() +
+geom_smooth(method = "lm", se = FALSE)
+
+summary(lm_sales_TV)
+
+R^2 = 0.6119
+```
+
+
+**Answers**
+
+**1. Compute the correlation between _sales_ and the predictor TV**
+
+The correlation between sales and TV is 'moderate' (use of this term is subjective; strength depends on application) and positive:
+
+```{r}
+#code
+cor(ads$TV, ads$sales)
+cor(ads$sales, ads$TV)
+```
+
+**2. Obtain the scatterplot and write down the fitted line**
+
+```{r}
+#code
+library(ggplot2)
+ggplot(data = ads, aes(x = TV, y = sales)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+**The fitted line. ** The `lm` function fits the regression.
+
+```{r}
+#code
+lm_sales_TV <- lm(ads$sales ~ ads$TV)
+lm_sales_TV <- lm(sales ~ TV, data = ads)
+```
+
+View the basic output of the fitted regression model. A common way is to use `summary`.  Another function `screenreg` converts the output to an ASCII table which is handy when adding copying an pasting into Word.
+```{r}
+#code: using summary
+summary(lm_sales_TV)
+```
+
+
+```{r}
+library(texreg)
+#Code: using screenreg
+screenreg(lm_sales_TV)
+
+library(stargazer)
+stargazer(lm_sales_TV, type = "latex", title = "Table 1")
+library(xtable)
+```
+The confidence intervals for the parameters in the functional form for E(Y) as a function of X quantifies their uncertainty. Use function `confint`
+
+```{r}
+#Code
+confint(lm_sales_TV, level = 0.9)
+
+#Interpretation of CI: Looking at the output, notice the signs of the lower and upper bounds, width, and whether 0 is in the interval.
+
+```
+
+The fitted line is:
+$$
+\widehat{sales}=7+0.05TV
+$$
+The R-squared is 0.61, and as the model includes an intercept, it computed as:
+
+$$
+R^2 = 1-\frac{RSS}{TSS}
+$$
+
+In the case of a perfect fit, RSS=0, so $R^2=1$.
+
+$R^2=0.61$ may be interpreted in the following equivalent ways:
+
+- 61% of the variability of _sales_ is explained the predictor _TV_.
+- 61% of the variability of _sales_ is explained by the model.
+
+It is not true to say: the regression line passes through 61% of the data points.
+
+**Theory**
+To consolidate our understanding of the OLS equation, think about the $\boldsymbol{X}$ for this regression:
+
+- How many rows and columns is there?
+- What are the values in each column?
+
+The function `model.matrix` prints out the martix $\boldsymbol{X}$
+
+```{r}
+#code
+model.matrix(lm_sales_TV)
+
+nrow(model.matrix(lm_sales_TV))
+ncol(model.matrix(lm_sales_TV))
+
+```
+
+
+
+**Exercise: SLR**
+
+1. For each of the advertising budgets repeat the demo answering:
+
+- Compute the correlation between _sales_ and each predictor (TV, radio, newspaper)
+
+- Run SLR of _sales_ against _radio_, and _newspaper_, so there are 2 separate regressions. Make sure you know how to interpret the coefficient on the predictor (the slope) in each regression
+
+
+```{r}
+#code
+cor(ads$sales,ads$TV)
+cor(ads$sales,ads$radio)
+cor(ads$sales,ads$newspaper)
+
+lm_sales_TV <- lm(sales~TV, data = ads)
+lm_sales_radio <- lm(sales~radio, data = ads)
+lm_sales_newspaper <- lm(sales~newspaper, data = ads)
+
+
+```
+
+
+## Multiple Linear Regression
+
+Regress sales on all the predictors (TV, radio, newspaper). Interpret each slope coefficient. 
+
+
+```{r}
+head(ads)
+#Method 1 (add together the X variables) 
+lm1 <- lm(sales ~ TV + newspaper + radio, data = ads)
+summary(lm1)
+#Method 2: MLR of Y against everything else
+lm2 <- lm(sales ~ ., data = ads)
+summary(lm2)
+#Method 3: MLR of Y against X's excluding some
+#Say we wish to regress Y on all other variables except the first column variables, X, which isn't part of the sales data
+lm3 <- lm(sales ~ TV + radio, data = ads)
+summary(lm3)
+```
+
+We can juxstapose the models using `screenreg`. The model objects should be provided as a list.
+(A _list_ is an ordered and changeable collection of data objects.)
+
+```{r}
+#code
+screenreg(lm_sales_TV)
+```
+
+
+The fitted model is:
+
+$$
+\widehat{\text{sales}}=2.94+0.05TV+0.19\text{radio}-0.001\text{newspaper}
+$$
+
+The (slope) coefficient on TV is interpretated as: A $1000 increase in TV advertising spending is associated to an increase in sales by 50 units, on average, holding all else fixed (ie level of spending on radio and newspapers). A similar interpretation holds for the other 2 slope coefficients.
+
+The interpretation of the intercept is: given no spending on TV, radio, or newspaper, the predicted sales is 2940 units. Note that if the intercept is outside the range of the data, then an interpretation would involve extrapolation, making the interpretation suspect/meaningless. 
+
+If the interest is on explaining the relationship between the X and Y, then it's only the slope coefficients that matter for interpretation, and you would not need to interpret the intercept. 
+
+**Remember that by default the coefficients are not explaining cause-effect relationships. **
+
+
+## Arithmetic with vectors
+
+R basic data types: character, numeric (real or decimal),integer,logical, factor
+
+```{r}
+#vectors
+a <- c(0,3,-2,-1) # numeric vector
+a2 <- 1:3   #integer sequence vector
+b <- c("How", "are", "you") # character (char) vector
+
+#Accessing elements using indexing and slicing
+#Vector
+a[1]      # index
+a[2:4]    #slicing
+a[c(1,3)] # accessing more than 1 element, not consecutive
+a[2]-a[1] 
+
+#sequence of differences
+a[2:4]-a[1:3]
+#or
+n <- 4
+a[2:n]-a[1:(n-1)]
+
+#sum of squares
+sum(a^2)
+
+#mean
+mean(a)
+
+#printing output to screen 
+sprintf("The mean of components of vector a is %f", mean(a)) # %f is a placeholder for numbers For the options see documentation
+# ?sprintf
+
+
+#Matrix
+A <- matrix(c(1,2,3,4,5,6,7,8,9,10,11,12),nrow=3,ncol=4,byrow=TRUE) #shorter to use 1:12
+A
+dim(A) # number of row, number of columns
+
+#Documentation for functions
+# all functions have documentation that contains information on the arguments and their default settings. For example to see the documentation for the function matrix() do:
+?matrix
+
+#Matrix
+# What elements do the following return?
+A[1,2]
+A[1:2,]
+A[1:2,1:2]
+
+```
+
+**Exercise: vector arithmetic**
+
+1. create a vector (1,2,3)
+2. Write code that returns the (a) sum of squares (b) squares the sum (c) corrected sum of squares ie $$\sum(a_i - \bar{a})^2$$
+3. What does the following code return?
+
+```{r}
+#Q3
+v <- c(100,20,5,1)
+v[1:3]/v[2:4]
+
+```
+
+
+

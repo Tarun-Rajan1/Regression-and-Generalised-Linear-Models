@@ -1,0 +1,196 @@
+---
+title: "ST300 Week 4"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+In this workshop, under the assumption of Normal model, we use two datasets to work out prediction, prediction and confidence intervals.
+
+
+### Univariate regression
+In this example we use Galton's data from library `HistData`
+```{r}
+# load library HistData 
+library("HistData")
+#Look at list of variables in data GaltonFamilies
+str(GaltonFamilies)
+# fit linear model to childHeight based on midparentHeight from dataset GaltonFamilies
+galton_fit <- lm(childHeight ~ midparentHeight, data = GaltonFamilies)
+# print the summary of the regression 
+summary(galton_fit)
+```
+
+With the fitted line, we can predict `childHeight` at different values of `midparentHeight`. In the predict function, if we specify `interval = "confidence"`, it gives the confidence intervals for the means of the new outcomes; if we specify `interval = "prediction"`, it gives the prediction intervals for the new outcomes themselves.
+```{r}
+# for the following new values of midparentHeight give predicted values of childHeight
+new_mph = seq(60, 80, by = 0.5)
+new_data = data.frame(midparentHeight = new_mph)
+# set interval = "confidence"
+new_ci <- predict(galton_fit, new_data, interval = "confidence")
+# set interval = "prediction"
+new_pi <- predict(galton_fit, new_data, interval = "prediction")
+# what is the difference between these two?
+head(cbind(new_ci, new_pi))
+```
+### Multivariate regression
+The R package `Matching` contains an experimental dataset `lalonde` from LaLonde (1986). Units were randomly assigned to the job training program, with treat being the treatment indicator. The outcome `re78` is the real earnings in 1978, and other variables are pretreatment covariates. From the simple OLS, the treatment has a significant positive effect, whereas none of the covariates are predictive of the outcome. Fit a linear model to `re78` using the rest of the variables in `lalonde` as covariates allowing for intercept. Which coefficients are significant?
+
+```{r}
+library("Matching")
+data(lalonde)
+str(lalonde)
+lalonde_fit <-  lm(re78 ~ ., data = lalonde)
+summary(lalonde_fit)
+```
+
+Are the coefficients jointly significant? 
+```{r}
+# Load library "car"
+library("car")
+# use function linearHypothesis Linear hypothesis test
+linearHypothesis(lalonde_fit, c("age=0", "educ=0", "black=0", "hisp=0", "married=0", "nodegr=0", "re74=0", "re75=0", "u74=0", "u75=0", "treat=0"))
+```
+### Equivalence of the t-statistics
+With the data \( \left(x_i, y_i\right)_{i=1}^n \), where both \( x_i \) and \( y_i \) are scalars, we perform the following steps:
+
+1. Run OLS fit of \( y_i \) on \( \left(1, x_i\right) \) to obtain \( t_{y \mid x} \), the \( t \)-statistic of the coefficient of \( x_i \), under the homoskedasticity assumption.
+
+2. Run OLS fit of \( x_i \) on \( \left(1, y_i\right) \) to obtain \( t_{x \mid y} \), the \( t \)-statistic of the coefficient of \( y_i \), under the homoskedasticity assumption.
+
+We aim to show that:
+\[
+t_{y \mid x} = t_{x \mid y}.
+\]
+This is a numerical result that holds without any stochastic assumptions. Below is an example that demonstrates this result.
+
+```{r}
+library(MASS)
+# simulate bivariate normal distribution
+xy <- mvrnorm(n = 100, mu = c(0, 0), Sigma=matrix(c(1, 0.5, 0.5, 1), ncol=2))
+xy <- as.data.frame(xy)
+colnames(xy) <- c("x", "y")
+# OLS
+reg.y.x = lm(y ~ x, data = xy)
+reg.x.y = lm(x ~ y, data = xy)
+summary(reg.y.x)$coef[2, 3]
+summary(reg.x.y)$coef[2, 3]
+```
+**Question** What does this imply?
+
+**Answer** 
+The equivalence of the t-statistics from the OLS fit of y on x and that of x on y demonstrates that based on OLS, the data do not contain any information about the direction of the relationship between x and y.
+
+### Testing Hypothesis on Means Using t-statistics
+
+In this exercise, we will test the hypothesis that two independent samples \( z_1, \ldots, z_m \sim \text{N}(\mu_1, \sigma^2) \) and \( w_1, \ldots, w_n \sim \text{N}(\mu_2, \sigma^2) \) have equal means, i.e., \( H_0: \mu_1 = \mu_2 \), using a $t$-statistic with a pooled variance estimator. We will also show that this problem can be formulated as a linear regression model and verify that the resulting $t$-statistic is identical.
+
+#### Step 1: Generate the Data
+```{r}
+set.seed(123)
+
+# Sample sizes
+m <- 50  # Sample size for z
+n <- 50  # Sample size for w
+
+# Means
+mu1 <- 2
+mu2 <- 2
+
+# Standard deviation
+sigma <- 1
+
+# Generate the data
+z <- rnorm(m, mean = mu1, sd = sigma)
+w <- rnorm(n, mean = mu2, sd = sigma)
+```
+#### Step 2: Compute the Pooled Variance Estimator and the t-statistic
+
+We will now compute the pooled variance \( \hat{\sigma}^2 \) and the t-statistic for testing \( H_0: \mu_1 = \mu_2 \).
+
+The pooled variance estimator is given by:
+\[
+\hat{\sigma}^2 = \frac{(m-1)S_z^2 + (n-1)S_w^2}{m+n-2}
+\]
+where \( S_z^2 \) and \( S_w^2 \) are the sample variances of \( z \) and \( w \), respectively.
+
+The t-statistic is given by:
+\[
+t_{\text{equal}} = \frac{\bar{z} - \bar{w}}{\sqrt{\hat{\sigma}^2 \left( \frac{1}{m} + \frac{1}{n} \right)}}
+\]
+
+```{r}
+# Compute sample means
+mean_z <- mean(z)
+mean_w <- mean(w)
+
+# Compute sample variances
+var_z <- var(z)
+var_w <- var(w)
+
+# Pooled variance
+pooled_var <- ((m - 1) * var_z + (n - 1) * var_w) / (m + n - 2)
+
+# t-statistic
+t_equal <- (mean_z - mean_w) / sqrt(pooled_var * (1/m + 1/n))
+
+# Print the t-statistic
+t_equal
+```
+
+We first simulate data from two normal distributions, one for \( z \) with mean \( \mu_1 \) and one for \( w \) with mean \( \mu_2 \).
+
+#### Step 3: Perform the t-test Using R's Built-in Function
+
+To verify our manual calculations, we can use the built-in `t.test` function in R with the `var.equal = TRUE` parameter. This function performs a two-sample t-test assuming equal variances, which corresponds to the hypothesis test \( H_0: \mu_1 = \mu_2 \).
+
+```{r}
+# Perform t-test with equal variance assumption
+t_test_result <- t.test(z, w, var.equal = TRUE)
+
+# Print the t-test result
+t_test_result
+```
+#### Step 4: Formulate the Problem as a Linear Regression Model
+
+We can reformulate this hypothesis testing problem as a linear regression model. Let:
+\[
+Y = \begin{pmatrix} z_1 \\ \vdots \\ z_m \\ w_1 \\ \vdots \\ w_n \end{pmatrix}, \quad 
+X = \begin{pmatrix} 1 & 1 \\ \vdots & \vdots \\ 1 & 1 \\ 1 & 0 \\ \vdots & \vdots \\ 1 & 0 \end{pmatrix}, \quad 
+\beta = \binom{\beta_0}{\beta_1}
+\]
+
+Here, \(Y\) is the response vector containing the observations from both samples, and \(X\) is the design matrix where the first column represents the intercept term, and the second column distinguishes between the two groups (1 for the \(z\)-group and 0 for the \(w\)-group). We are interested in testing \( H_0: \beta_1 = 0 \), which corresponds to testing whether the means of the two groups are equal.
+
+The linear regression model can be fit using the `lm` function in R.
+
+```{r}
+# Combine z and w into one response vector Y
+Y <- c(z, w)
+
+# Create the design matrix X
+X <- matrix(c(rep(1, m+n), rep(1, m), rep(0, n)), ncol = 2)
+
+# Fit the linear model
+lm_fit <- lm(Y ~ X - 1)  # -1 to exclude the intercept already included in X
+
+# Summary of the linear model
+summary_lm <- summary(lm_fit)
+
+# Print the summary
+summary_lm
+
+mean(w)
+```
+**Question**.What do you get from comparing the results?
+
+**Answer**. All three should be identical, confirming that the $t$-statistic for testing the equality of means in this context is the same whether calculated manually, using the built-in test, or using a linear regression model.
+
+You just implemented **Exercise 25**, now show it mathemtically. 
+
+### An application
+
+The R package `sampleSelection` (Toomet and Henningsen, 2008) describes the dataset `RandHIE` as follows: “The RAND Health Insurance Experiment was a comprehensive study of health care cost, utilization and outcome in the United States. It is the only randomized study of health insurance, and the only study which can give definitive evidence as to the causal effects of different health insurance plans.” You can find more detailed information about other variables in this package. The main outcome of interest `lnmeddol` means the log of medical expenses. Use linear regression to investigate the relationship between the outcome and various important covariates.
+
+Note that the solution to this problem is not unique, but you need to justify your choice of covariates and model, and need to interpret the results.
+

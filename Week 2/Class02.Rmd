@@ -1,0 +1,280 @@
+---
+title: "ST300 Week 2"
+output:
+  html_document:
+    df_print: paged
+---
+
+In this workshop:
+
+- We work on the excercises 9, 10, 11, and 12 in lecture 2. 
+
+## Residuals in Linear Models
+
+Write a code in R that generates a sample of size 100 from \( Y = X\beta + \varepsilon \), where \( \varepsilon \sim N(0, 1) \). Calculate the residuals in two scenarios:
+
+1. When \( X \) does not contain a column of all ones (i.e., no intercept term).
+2. When \( X \) contains a column of all ones (i.e., an intercept term is included).
+
+```{r}
+set.seed(1)
+# Sample size
+n <- 100
+
+# Generate the design matrix X (without a column of ones)
+# whose values come from a standard normal distribution
+# There are two predictors.
+X_no_intercept <- matrix(data = rnorm(n*2) ,nrow = n, ncol = 2)
+
+# Generate beta coefficients, set the values as you wish 
+beta <- matrix(c(1,2), nrow = 2)
+
+# Generate errors from N(0, 1)
+epsilon <- matrix(data = rnorm(n),nrow = n)
+
+# Generate Y
+Y <- X_no_intercept%*%beta + epsilon
+
+# Residuals when X does not contain a column of ones
+fit_no_intercept <- lm(Y ~ X_no_intercept - 1) # correct this by removing the intercept
+residuals_no_intercept <- resid(fit_no_intercept)
+summary(fit_no_intercept)
+
+# Add a column of ones to X (with intercept term)
+X_with_intercept <- cbind(1, X_no_intercept)
+
+# Residuals when X contains a column of ones
+fit_with_intercept <- lm(Y ~ X_with_intercept - 1)
+residuals_with_intercept <- resid(fit_with_intercept)
+summary(fit_with_intercept)
+
+# Compare residuals
+# Output the sum of residuals for each model
+sum(residuals_with_intercept)
+sum(residuals_no_intercept)
+
+```
+
+**Exercise 9**. Show that when \( X \) contains a column of all 1’s, i.e. we allow for an intercept in the model, the mean value of residuals is equal to zero.
+
+**Exercise 10**. For \( Y \in \mathbb{R}^n \) and \( X \in \mathbb{R}^{n \times p} \), consider the regression \( Y = X\beta \), and let \( \hat{\beta} \) be the OLS estimate. Show that for any \( b \in \mathbb{R}^p \) we have 
+
+\[
+    \|Y - Xb\|^2 \geq \|Y - X\hat{\beta}\|^2,
+\]
+
+with equality holding if and only if \( b = \hat{\beta} \).
+
+
+Consider a regression problem where \( X \in \mathbb{R}^{n \times p} \) is a matrix of predictors, and \( \Gamma \in \mathbb{R}^{p \times p} \) is a non-degenerate (invertible) transformation matrix. Let \( \tilde{X} = X\Gamma \). From the OLS fit of \( Y \) on \( X \), we obtain the coefficient \( \hat{\beta} \), fitted values \( \hat{Y} \), and residuals \( \hat{\varepsilon} \). Similarly, from the OLS fit of \( Y \) on \( \tilde{X} \), we obtain the coefficient \( \tilde{\beta} \), fitted values \( \tilde{Y} \), and residuals \( \tilde{\varepsilon} \).
+
+Your task is to implement the following steps in R and verify the results.
+
+## Exploring the Impact of Linear Transformation on OLS Estimation
+### Step 1: Generate Data
+
+- Set \( n = 100 \) (number of observations) and \( p = 3 \) (number of predictors).
+- Simulate a matrix \( X \) with dimensions \( n \times p \), where each entry is drawn from a standard normal distribution.
+- Simulate the true coefficient vector \( \beta \in \mathbb{R}^p \), for example, \( \beta = [2, -1, 3] \).
+- Generate the response variable \( Y \) using the model \( Y = X\beta + \varepsilon \), where \( \varepsilon \) is drawn from a normal distribution \( N(0, 1) \).
+
+```{r}
+# Step 1: Generate Data
+n <- 100 # sample size
+p <- 3 # number of covariates
+
+# Generate X (n x p matrix) with entries from N(0, 1)
+
+# True coefficient vector beta
+beta <- c(2, -1, 3)
+
+# Generate the error term (from N(0, 1))
+epsilon <-#CODE
+  
+# Generate Y = X * beta + epsilon
+Y <- 
+  
+```
+
+### Step 2: Perform OLS on \( X \)
+
+Use R's `lm()` function to fit an OLS regression model of \( Y \) on \( X \) (without an intercept term). This will give us the coefficient estimates \( \hat{\beta} \), the fitted values \( \hat{Y} \), and the residuals \( \hat{\varepsilon} \).
+
+```{r}
+# Step 2: Perform OLS on X
+fit_X <-  #CODE
+hat_beta <-  #CODE
+hat_Y <-  #CODE
+hat_epsilon <- #CODE
+```
+
+### Step 3: Define a Transformation Matrix \( \Gamma \)
+
+In this step, we define a random \( p \times p \) matrix \( \Gamma \), ensuring that it is invertible (non-degenerate). This matrix \( \Gamma \) will transform our predictor matrix \( X \). We then compute the transformed matrix \( \tilde{X} = X \Gamma \).
+
+To ensure that \( \Gamma \) is invertible, we will check its determinant. If the determinant is zero, we will regenerate \( \Gamma \), as a matrix with a zero determinant is not invertible.
+
+```{r}
+# Step 3: Define a random transformation matrix Gamma (p x p)
+#For this first attempt, set Gamma whose values are from the standard normal
+Gamma <- matrix(#CODE)
+  
+# Check if Gamma is invertible (non-degenerate)
+if (det(Gamma) == 0) {
+  stop("Gamma is not invertible, regenerate Gamma.")
+}
+
+# Compute the transformed matrix X_tilde = X %*% Gamma
+X_tilde <-#CODE
+```
+### Step 4: Perform OLS on \( \tilde{X} \)
+
+Now, we will perform OLS regression on \( Y \) using the transformed predictor matrix \( \tilde{X} = X \Gamma \). Similar to the previous OLS fit, we will use the `lm()` function without an intercept term. This will give us the coefficient estimates \( \tilde{\beta} \), fitted values \( \tilde{Y} \), and residuals \( \tilde{\varepsilon} \).
+
+```{r}
+# Step 4: Perform OLS on X_tilde
+fit_X_tilde <- #CODE for linear regression of Y on X_tilde
+tilde_beta <- #CODE to obtain coefficients
+tilde_Y <- #CODE to obtain the fitted Ys
+tilde_epsilon <- #CODE to obtain residuals
+  
+  
+```
+
+### Step 5: Verify the relationships
+```{r}
+# 1. Check if hat_beta = Gamma %*% tilde_beta
+
+
+# 2. Check if hat_Y = tilde_Y
+
+
+# 3. Check if hat_epsilon = tilde_epsilon
+
+```
+
+**Exercise 11**. Assume that \( X^TX \) is non-degenerate and \( \Gamma \) is a \( p \times p \) non-degenerate matrix. Define \( \tilde{X} = X\Gamma \). From the OLS fit of \( Y \) on \( X \), we obtain the coefficient \( \hat{\beta} \), the fitted value \( \hat{Y} \), and the residual \( \hat{\varepsilon} \); from the OLS fit of \( Y \) on \( \tilde{X} \), we obtain the coefficient \( \tilde{\beta} \), the fitted value \( \tilde{Y} \), and the residual \( \tilde{\varepsilon} \).
+
+Prove that
+\[
+    \hat{\beta} = \Gamma\tilde{\beta}, \quad \hat{Y} = \tilde{Y}, \quad \hat{\varepsilon} = \tilde{\varepsilon}.
+\]
+
+## Full Sample and Subsample OLS Coefficients in R
+
+Partition a dataset into \( K \) subsamples, fit OLS regression models on each subsample and the full sample, and validate the relationship:
+\[
+\hat{\beta} = \sum_{k = 1}^K W_{(k)}\hat{\beta}_{(k)},
+\]
+where \( W_{(k)} = (X^TX)^{-1}X_{(k)}^TX_{(k)} \).
+
+---
+
+### Step 1: Simulate Data
+
+We begin by generating a full dataset:
+
+- \( n = 100 \) observations, \( p = 3 \) predictors.
+- Simulate a covariate matrix \( X \in \mathbb{R}^{n \times p} \) with entries from \( N(0, 1) \).
+- Use a true coefficient vector \( \beta = [2, -1, 3] \).
+- Outcome variable \( Y = X\beta + \varepsilon \), where \( \varepsilon \sim N(0, 1) \).
+
+```{r}
+set.seed(1)
+# Step 1: Simulate data
+n <- 100 # sample size
+p <- 3 # number of covariates
+K <- 4  # Number of subsamples
+
+# Covariate matrix X (n x p) with entries from N(0, 1)
+X <- #CODE
+  
+# True coefficient vector beta
+beta_true <- c(2, -1, 3)
+
+# Generate the error term ~ N(0,1)
+epsilon <-#CODE
+  
+# Response vector Y = X * beta + epsilon
+Y <- #CODE
+```
+### Step 2: Partition the Data into \( K \) Subsamples
+
+In this step, we will partition the data into \( K = 4 \) subsamples. Each subsample \( (X_{(k)}, Y_{(k)}) \) will consist of approximately \( n_k = n / K \) observations. We will randomly assign the indices to create these subsamples.
+
+```{r}
+# Step 2: Partition the data into K subsamples
+
+```
+### Step 3: Fit OLS for Full Sample and Subsamples
+
+In this step, we will fit OLS regression models for both the full sample and each of the \( K \) subsamples. We will obtain the following:
+- The OLS coefficient \( \hat{\beta} \) from the full sample.
+- The OLS coefficients \( \hat{\beta}_{(k)} \) from each subsample.
+
+We will use the `lm()` function in R to perform these regressions.
+
+```{r}
+# Step 3: Fit OLS for full sample
+
+
+# Fit OLS for each subsample
+
+
+# Print the results
+
+```
+### Step 4: Compute the Weight Matrices
+
+In this step, we will compute the weight matrices \( W_{(k)} \) for each subsample. The weight matrix is defined as:
+\[
+W_{(k)} = (X^TX)^{-1} X_{(k)}^TX_{(k)}.
+\]
+
+We will first compute \( (X^TX)^{-1} \) and then use it to calculate the weights for each subsample.
+
+```{r}
+# Step 4: Compute the weight matrices
+
+# Compute the weight matrices for each subsample
+
+
+# Print the weight matrices
+
+```
+### Step 5: Verify the Weighted Sum Relationship
+
+In this step, we will verify the relationship:
+\[
+\hat{\beta} = \sum_{k=1}^K W_{(k)}\hat{\beta}_{(k)},
+\]
+by computing the weighted sum of the subsample coefficients \( \hat{\beta}_{(k)} \) using the corresponding weight matrices \( W_{(k)} \) and comparing it with \( \hat{\beta} \) from the full sample.
+
+```{r}
+# Step 5: Verify the relationship
+
+```
+**Exercise 12**. Partition the full sample into \( K \) subsamples:
+
+\begin{eqnarray*}
+    X = \begin{pmatrix}
+        X_{(1)} \\
+        \vdots \\
+        X_{(K)} 
+    \end{pmatrix}, \quad Y = \begin{pmatrix}
+        Y_{(1)} \\
+        \vdots \\
+        Y_{(K)} 
+    \end{pmatrix},
+\end{eqnarray*}
+
+where the \( k \)th sample consists of \( (X_{(k)}, Y_{(k)}) \) with \( X_{(k)} \in \mathbb{R}^{n_k \times p} \) and \( Y_{(k)} \in \mathbb{R}^{n_k} \) being the covariate matrix and outcome vector. Note that \( n = \sum_{k = 1}^K n_k \).
+
+Let \( \hat{\beta} \) be the OLS coefficient based on the full sample, and \( \hat{\beta}_{(k)} \) be the OLS coefficient based on the \( k \)th sample. Show that
+\[
+\hat{\beta} = \sum_{k = 1}^K W_{(k)}\hat{\beta}_{(k)},
+\]
+where the weight matrix equals 
+\[
+W_{(k)} = (X^TX)^{-1}X_{(k)}^TX_{(k)}.
+\]

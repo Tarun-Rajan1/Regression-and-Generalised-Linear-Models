@@ -1,0 +1,113 @@
+---
+title: "ST300 Week 7"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+# Logistic Regression 
+
+Consider data published on $n = 27$ leukemia patients. The data (leukemia.csv) has a response variable of whether leukemia remission occurred (`REMISS`), which is given by a 1.
+
+The predictor variables are cellularity of the marrow clot section (`CELL`), smear differential percentage of blasts (`SMEAR`), percentage of absolute marrow leukemia cell infiltrate (`INFIL`), percentage labeling index of the bone marrow leukemia cells (`LI`), absolute number of blasts in the peripheral blood (`BLAST`), and the highest temperature prior to start of treatment (`TEMP`). Ensure that the `REMISS` variable is a factor for logistic regression.
+
+```{r}
+library(glmnet)
+library(dplyr)
+library(caret)
+
+leukemia <- read.csv(file = "/Users/tarunrajan/Library/Mobile Documents/com~apple~CloudDocs/ST300/Week 7/leukemia.csv")
+
+str(leukemia)
+summary(leukemia)
+sum(is.na(leukemia))
+
+leukemia$REMISS <- as.factor(leukemia$REMISS)
+```
+
+Split the Data into Training and Testing Sets Create a training ($80\%$) and testing ($20\%$) split for better model evaluation.
+
+```{r}
+set.seed(123) # For reproducibility
+ 
+sample_index <- createDataPartition(leukemia$REMISS, p = 0.8, list = FALSE)
+training_data <- leukemia[sample_index,]
+testing_data <- leukemia[-sample_index,]
+```
+
+```{r}
+# Fit the logistic regression model
+logistic_model <- glm(REMISS ~ ., data = training_data, family = binomial(link = "logit"))
+
+# Display model summary
+summary(logistic_model)
+```
+Do you a get a warning? What does it mean? To figure out the meaning of the warning let's look at the following toy example.
+```{r}
+# Load necessary library
+library(ggplot2)
+
+# X is the predictor, Y is the response (binary)
+toy_data <- data.frame(
+  X = c(1, 2, 4, 10, 11, 12),
+  Y = c(0, 0, 0, 1, 1, 1)
+)
+```
+Plot the data above.
+```{r}
+# Visualize the data
+ggplot(toy_data, aes(x = X, y = Y)) +
+  geom_point() +
+  labs(title = "Example of Complete Separation in Logistic Regression",
+       x = "X (Predictor)",
+       y = "Y (Response)")
+```
+Now fit a logistic regression model to `toy_data`.
+```{r}
+# Fit a logistic regression model
+model <- glm(Y ~ X, data = toy_data, family = binomial(link = "logit"))
+
+# Check the model summary
+summary(model)
+```
+Now consider the `new_toy_data` that is a copy of `toy_data` with an additional point $X = 3$ and $Y = 1$. Plot the this data such that the new point has a different color. 
+```{r}
+# Create the new_toy_data such that it has one more data point (X = 3, Y = 1) in comparison to toy_data
+new_point <- data.frame(X = 3, Y = 1)
+new_toy_data <- rbind(new_point,toy_data)
+
+ggplot() +
+  # Plot the original data points
+  geom_point(data = toy_data, aes(x = X, y = Y), color = "blue", size = 3) +
+  # Plot the new point with a different color
+  geom_point(data = new_point, aes(x = X, y = Y), color = "red", size = 4) +
+  labs(title = "Plot of toy_data with a Highlighted New Point",
+       x = "X",
+       y = "Y")
+```
+Now fit a logistic regression model to `new_toy_data`.
+```{r}
+# Fit a logistic regression model
+model_new <- glm(Y ~ X, data = new_toy_data, family = binomial(link = "logit"))
+
+# Check the model summary
+summary(model_new)
+```
+Can you now explain what was the warning about?
+
+# Ridge Regression 
+Consider the ridge regression problem
+
+$$
+\arg \min _{\boldsymbol{\beta}}\left\{\|\mathbf{Y}-\mathbf{X} \boldsymbol{\beta}\|^2+\lambda \|\boldsymbol{\beta}\|_2^2 \right\}
+$$
+
+where the model does not contain an intercept term.
+
+* Explain why ridge regression helps solve the problem of multicolinearity.
+* Solve the above problem to give the ridge estimator $\hat{\boldsymbol{\beta}}_\text{ridge}$.
+* Find the bias of the ridge estimator
+
+# Residual Sanity Check
+
+**Question** An ecologist friend of yours measures the amount of oxygen, $y$, emitted from a planted area as a function of temperature, $x$ and fits a straight line to a scatterplot of $y$ versus $x$. The relationship is positive. He then plots the residuals versus the observed values, $y$, and finds that they are positively correlated - the residuals for low values of oxygen are negative and those for large values are positive. He finds this puzzling and disturbing and wonders if he is doing something wrong or if this is evidence of model misfit. What would you say to him?

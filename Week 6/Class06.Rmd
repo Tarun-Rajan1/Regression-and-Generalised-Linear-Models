@@ -1,0 +1,165 @@
+---
+title: "ST300 Week 6"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+Here’s a worksheet for practicing **Lasso and Ridge Regression in R**. 
+```{r}
+# Install if not already installed
+#install.packages("glmnet")    # glmnet package for ridge and lasso regression
+# install.packages("dplyr")     # dplyr for data manipulation
+#install.packages("caret")     # caret for train-test split and evaluation
+
+# Load libraries
+library(glmnet)
+library(dplyr)
+library(caret)
+```
+The `Prostate` (you have worked with this in week 5) dataset contains features related to prostate cancer. Let's inspect it. What is the last column? In this study we will not work with it, so remove it. Use function scale to scale all the columns.
+```{r}
+# Load the dataset
+Prostate <- read.table(file = "/Users/tarunrajan/Library/Mobile Documents/com~apple~CloudDocs/ST300/Week 6/prostate.txt")
+
+# Remove the last column
+Prostate <- Prostate[,-10]
+
+# scale all the columns
+Prostate <- as.data.frame(scale(Prostate))
+
+# Check the structure and summary of the data
+str(Prostate)
+summary(Prostate)
+```
+Remove any unnecessary columns and handle categorical data if necessary. In the Prostate dataset, the response variable is `lpsa`, which we want to predict.
+```{r}
+# Set the predictor variables (X) and the response variable (y)
+X <- as.matrix(Prostate[, -which(names(Prostate) == "lpsa")])  # All columns except 'lpsa'
+
+y <- Prostate$lpsa
+```
+We'll split the data into a training and a testing set for model evaluation. Keep $80\%$ for training, $20\%$ for testing.
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+
+# Split the data: 80% for training, 20% for testing, use createDataPartition or any other method 
+train_index <- createDataPartition(y, p =0.8, list = FALSE)
+X_train <- X[train_index, ]
+X_test <- X[-train_index, ]
+y_train <- y[train_index]
+y_test <- y[-train_index]
+
+```
+Ridge regression is a regularized linear regression model that penalizes large coefficients. We'll use cross-validation to find the best penalty parameter (`lambda.min`). Use $\alpha = 0$ in the input of glmnet function to perform ridge.
+```{r}
+# Fit Ridge Regression with Cross-Validation
+set.seed(123)
+
+ridge_model <- cv.glmnet(X_train, y_train, alpha = 0, nfolds = 10)  # alpha = 0 for ridge
+
+# Best lambda for Ridge Regression
+best_lambda_ridge <- ridge_model$lambda.min
+print(paste("Best lambda for Ridge Regression:", best_lambda_ridge))
+
+# Plot Cross-Validation MSE for Ridge
+plot(ridge_model)
+
+# Predict on test set using the best lambda
+ridge_pred <- predict(ridge_model, s = best_lambda_ridge, newx = X_test)
+
+# Evaluate Ridge Model
+ridge_mse <- mean((ridge_pred - y_test)^2)
+print(paste("Ridge Test MSE:", ridge_mse))
+```
+Lasso regression is another form of regularization that can shrink some coefficients to zero, thus performing variable selection. Use $\alpha = 1$ in the input of glmnet function to perform lasso.
+```{r}
+# Fit Lasso Regression with Cross-Validation
+set.seed(123)
+lasso_model <- cv.glmnet(X_train, y_train, alpha = 1, nfolds = 10)  # alpha = 1 for lasso
+
+# Best lambda for Lasso Regression
+best_lambda_lasso <- lasso_model$lambda.min
+print(paste("Best lambda for Lasso Regression:", best_lambda_lasso))
+
+# Plot Cross-Validation MSE for Lasso
+plot(lasso_model)
+
+# Predict on test set using the best lambda
+lasso_pred <- predict(lasso_model, s = best_lambda_lasso, newx = X_test)
+
+# Evaluate Lasso Model
+lasso_mse <- mean((lasso_pred - y_test)^2)
+print(paste("Lasso Test MSE:", lasso_mse))
+```
+Finally, we can compare the performance of the Ridge and Lasso models by comparing their Mean Squared Error (MSE) on the test set.
+```{r}
+# Print MSE results for comparison
+print(paste("Ridge Test MSE:", ridge_mse))
+print(paste("Lasso Test MSE:", lasso_mse))
+```
+Ridge regression will shrink coefficients but won't eliminate any variables, while Lasso may shrink some coefficients to zero, effectively performing feature selection.
+```{r}
+# Coefficients from Ridge Regression
+ridge_coef <- predict(ridge_model, s = best_lambda_ridge, type = "coefficients")
+print("Ridge Coefficients:")
+print(ridge_coef)
+
+# Coefficients from Lasso Regression
+lasso_coef <- predict(lasso_model, s = best_lambda_lasso, type = "coefficients")
+print("Lasso Coefficients:")
+print(lasso_coef)
+```
+
+## Too Many covariates
+Simulate a dataset with a large number of predictors, many of which are irrelevant (i.e., their true coefficient values are zero). This example will demonstrate how Lasso tends to set coefficients of irrelevant predictors to zero, effectively performing feature selection.
+
++ 100 observations ($n = 100$)
++ 50 predictors ($p = 50$), of which only 5 will be truly relevant
++ A response variable y that depends on only these 5 predictors plus some random noise
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+
+# Parameters for the simulation
+n <- 100    # Number of observations
+p <- 50    # Number of predictors
+
+# Simulate predictor matrix X with standard normal random variables
+X <- matrix(rnorm(n*p), nrow = n, ncol= p)
+
+# Set true coefficients for only the first 5 predictors; the rest are zero
+beta <- c(-3,-2,1.5,0,-1, rep(0, p - 5))
+
+# Generate the response variable y with a bit of noise
+y <- X %*% beta + rnorm(n)
+```
+Use cross-validation to determine the best penalty parameter ($\lambda$) for the Lasso model, which helps control the amount of shrinkage applied to the coefficients.
+```{r}
+# Fit Lasso Regression with Cross-Validation
+set.seed(123)
+lasso_model <- cv.glmnet(X, y, alpha = 1)  # alpha = 1 for Lasso
+
+# Get the best lambda
+best_lambda <- lasso_model$lambda.min
+print(paste("Best lambda for Lasso:", best_lambda))
+
+# Plot Cross-Validation MSE for Lasso
+plot(lasso_model)
+```
+Check the coefficients at the optimal lambda to see if Lasso has correctly identified the relevant predictors (non-zero coefficients) and set irrelevant ones to zero.
+```{r}
+# Coefficients from Lasso at the best lambda
+lasso_coef <- predict(lasso_model, s = best_lambda, type = "coefficients")
+
+which(lasso_coef != 0)
+```
+Did lasso capture the correct covariates?
+
+
+
+
+
+
+
